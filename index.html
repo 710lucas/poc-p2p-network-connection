@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eleição de Líder - Ring Election Algorithm</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .connection-form {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            border: 2px solid #e9ecef;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .dashboard {
+            display: none;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 30px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border: 2px solid #f8f9fa;
+        }
+
+        .card h3 {
+            color: #495057;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 10px;
+        }
+
+        .status-item {
+            margin-bottom: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .status-item strong {
+            color: #495057;
+        }
+
+        .battery-display {
+            background: linear-gradient(90deg, #28a745 0%, #ffc107 70%, #dc3545 100%);
+            height: 30px;
+            border-radius: 15px;
+            position: relative;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+
+        .battery-fill {
+            background: #28a745;
+            height: 100%;
+            border-radius: 15px;
+            transition: width 0.5s ease;
+            position: relative;
+        }
+
+        .battery-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            z-index: 2;
+        }
+
+        .node-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .node-item {
+            background: #f8f9fa;
+            margin-bottom: 10px;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #6c757d;
+            transition: all 0.3s;
+        }
+
+        .node-item.leader {
+            border-left-color: #ffc107;
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+        }
+
+        .node-item.self {
+            border-left-color: #667eea;
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+        }
+
+        .log-container {
+            grid-column: 1 / -1;
+            background: #212529;
+            color: #28a745;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            word-wrap: break-word;
+        }
+
+        .actions {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .actions .btn {
+            margin: 0 10px;
+        }
+
+        .connection-status {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .connection-status.connected {
+            background: #28a745;
+        }
+
+        .connection-status.disconnected {
+            background: #dc3545;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏆 Eleição de Líder</h1>
+            <p>Algoritmo Ring Election em tempo real</p>
+        </div>
+
+        <div class="content">
+            <div id="connectionForm" class="connection-form">
+                <h2>Conectar ao Anel</h2>
+                <div class="form-group">
+                    <label for="nodeName">Nome do Nó:</label>
+                    <input type="text" id="nodeName" placeholder="Digite seu nome" required>
+                </div>
+                <div class="form-group">
+                    <label for="existingNodeAddress">Nome de um Nó Existente (deixe vazio se for o primeiro):</label>
+                    <input type="text" id="existingNodeAddress" placeholder="Digite o nome de um nó já conectado">
+                </div>
+                <button class="btn" onclick="connectToRing()">Conectar</button>
+            </div>
+
+            <div id="dashboard" class="dashboard">
+                <div class="card">
+                    <h3>🔋 Status do Meu Nó</h3>
+                    <div class="status-item">
+                        <strong>Nome:</strong> <span id="myNodeName">-</span>
+                    </div>
+                    <div class="status-item">
+                        <strong>Status:</strong> 
+                        <span class="connection-status" id="connectionStatus"></span>
+                        <span id="connectionText">Desconectado</span>
+                    </div>
+                    <div class="status-item">
+                        <strong>Endereço:</strong> <span id="myNodeAddress">-</span>
+                    </div>
+                    <div class="status-item">
+                        <strong>Bateria:</strong>
+                        <div class="battery-display">
+                            <div class="battery-fill" id="batteryFill"></div>
+                            <div class="battery-text" id="batteryText">0%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>👑 Informações do Líder</h3>
+                    <div class="status-item">
+                        <strong>Líder Atual:</strong> <span id="leaderName">Nenhum</span>
+                    </div>
+                    <div class="status-item">
+                        <strong>Bateria do Líder:</strong> <span id="leaderBattery">-</span>
+                    </div>
+                    <div class="status-item">
+                        <strong>Endereço do Líder:</strong> <span id="leaderAddress">-</span>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>🌐 Nós Conectados</h3>
+                    <div class="node-list" id="nodeList">
+                        <div class="node-item">Nenhum nó conectado</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>⚡ Ações</h3>
+                    <div class="actions">
+                        <button class="btn" onclick="triggerElection()">Iniciar Eleição</button>
+                        <button class="btn" onclick="decreaseBattery()">Diminuir Bateria</button>
+                        <button class="btn" onclick="disconnect()">Desconectar</button>
+                    </div>
+                </div>
+
+                <div class="log-container">
+                    <h3 style="color: #28a745; margin-bottom: 15px;">📋 Log de Eventos</h3>
+                    <div id="logOutput"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class RingElectionNode {
+            constructor() {
+                this.name = '';
+                this.battery = this.generateBattery();
+                this.nodeId = this.generateNodeId();
+                this.activeNodes = new Map();
+                this.leader = null;
+                this.isConnected = false;
+                this.heartbeatInterval = null;
+                this.electionInProgress = false;
+                
+                // Configuração do BroadcastChannel para comunicação entre abas
+                this.channel = new BroadcastChannel('ring-election');
+                this.setupChannelHandlers();
+                
+                this.log(`Nó criado com ID: ${this.nodeId}`);
+            }
+
+            generateNodeId() {
+                return Math.random().toString(36).substring(2, 15);
+            }
+
+            generateBattery() {
+                return Math.floor(Math.random() * 100) + 1;
+            }
+
+            setupChannelHandlers() {
+                this.channel.onmessage = (event) => {
+                    const { type, data, fromNode } = event.data;
+                    
+                    // Não processa mensagens do próprio nó
+                    if (fromNode === this.nodeId) return;
+                    
+                    switch (type) {
+                        case 'NODE_JOIN':
+                            this.handleNodeJoin(data);
+                            break;
+                        case 'NODE_LEAVE':
+                            this.handleNodeLeave(data);
+                            break;
+                        case 'HEARTBEAT':
+                            this.handleHeartbeat(data);
+                            break;
+                        case 'ELECTION_START':
+                            this.handleElectionStart(data);
+                            break;
+                        case 'ELECTION_RESULT':
+                            this.handleElectionResult(data);
+                            break;
+                        case 'BATTERY_UPDATE':
+                            this.handleBatteryUpdate(data);
+                            break;
+                        case 'REQUEST_NODES':
+                            this.handleRequestNodes(fromNode);
+                            break;
+                        case 'NODES_RESPONSE':
+                            this.handleNodesResponse(data);
+                            break;
+                    }
+                };
+            }
+
+            broadcast(type, data) {
+                this.channel.postMessage({
+                    type,
+                    data,
+                    fromNode: this.nodeId,
+                    timestamp: Date.now()
+                });
+            }
+
+            log(message) {
+                const logOutput = document.getElementById('logOutput');
+                const timestamp = new Date().toLocaleTimeString();
+                const logEntry = document.createElement('div');
+                logEntry.className = 'log-entry';
+                logEntry.textContent = `[${timestamp}] ${message}`;
+                logOutput.appendChild(logEntry);
+                logOutput.scrollTop = logOutput.scrollHeight;
+                console.log(`[${timestamp}] ${message}`);
+            }
+
+            async connectToRing(existingNodeName = null) {
+                const nodeInfo = {
+                    id: this.nodeId,
+                    name: this.name,
+                    battery: this.battery,
+                    joinTime: Date.now()
+                };
+
+                // Adiciona o próprio nó
+                this.activeNodes.set(this.nodeId, nodeInfo);
+
+                if (!existingNodeName) {
+                    // Primeiro nó no anel
+                    this.log(`${this.name} é o primeiro nó no anel`);
+                    this.isConnected = true;
+                    await this.startElection();
+                } else {
+                    // Tenta se conectar a um anel existente
+                    this.log(`Tentando conectar ao anel...`);
+                    
+                    // Solicita lista de nós existentes
+                    this.broadcast('REQUEST_NODES', {});
+                    
+                    // Anuncia entrada no anel
+                    this.broadcast('NODE_JOIN', nodeInfo);
+                    this.isConnected = true;
+                    
+                    // Aguarda um pouco para receber respostas e então inicia eleição
+                    setTimeout(async () => {
+                        if (this.activeNodes.size > 1) {
+                            this.log(`Conectado ao anel com ${this.activeNodes.size} nós`);
+                        }
+                        await this.startElection();
+                    }, 1000);
+                }
+
+                this.startHeartbeat();
+                this.updateUI();
+                return true;
+            }
+
+            handleNodeJoin(nodeInfo) {
+                if (!this.activeNodes.has(nodeInfo.id)) {
+                    this.activeNodes.set(nodeInfo.id, nodeInfo);
+                    this.log(`Nó ${nodeInfo.name} entrou no anel`);
+                    
+                    // Responde com a lista atual de nós
+                    const currentNodes = Array.from(this.activeNodes.values());
+                    this.broadcast('NODES_RESPONSE', currentNodes);
+                    
+                    this.updateUI();
+                    
+                    // Inicia nova eleição com o novo nó
+                    setTimeout(() => this.startElection(), 500);
+                }
+            }
+
+            handleNodeLeave(nodeInfo) {
+                if (this.activeNodes.has(nodeInfo.id)) {
+                    this.activeNodes.delete(nodeInfo.id);
+                    this.log(`Nó ${nodeInfo.name} saiu do anel`);
+                    
+                    // Se o líder saiu, inicia nova eleição
+                    if (this.leader && this.leader.id === nodeInfo.id) {
+                        this.leader = null;
+                        this.log(`Líder saiu, iniciando nova eleição`);
+                        setTimeout(() => this.startElection(), 500);
+                    }
+                    
+                    this.updateUI();
+                }
+            }
+
+            handleHeartbeat(nodeInfo) {
+                if (this.activeNodes.has(nodeInfo.id)) {
+                    this.activeNodes.set(nodeInfo.id, {
+                        ...this.activeNodes.get(nodeInfo.id),
+                        ...nodeInfo,
+                        lastHeartbeat: Date.now()
+                    });
+                }
+            }
+
+            handleRequestNodes(fromNodeId) {
+                // Responde com a lista atual de nós
+                const currentNodes = Array.from(this.activeNodes.values());
+                this.broadcast('NODES_RESPONSE', currentNodes);
+            }
+
+            handleNodesResponse(nodes) {
+                // Atualiza lista de nós com a resposta recebida
+                nodes.forEach(node => {
+                    if (node.id !== this.nodeId) {
+                        this.activeNodes.set(node.id, {
+                            ...node,
+                            lastHeartbeat: Date.now()
+                        });
+                    }
+                });
+                this.updateUI();
+            }
+
+            handleElectionStart(data) {
+                if (!this.electionInProgress) {
+                    this.log(`Eleição iniciada por ${data.initiator}`);
+                    this.participateInElection();
+                }
+            }
+
+            handleElectionResult(leader) {
+                this.leader = leader;
+                this.electionInProgress = false;
+                this.log(`Novo líder: ${leader.name} (bateria: ${leader.battery}%)`);
+                this.updateUI();
+            }
+
+            handleBatteryUpdate(data) {
+                if (this.activeNodes.has(data.id)) {
+                    const node = this.activeNodes.get(data.id);
+                    node.battery = data.battery;
+                    this.activeNodes.set(data.id, node);
+                    
+                    this.log(`Bateria de ${node.name} atualizada para ${data.battery}%`);
+                    this.updateUI();
+                    
+                    // Se for o líder e a bateria ficou baixa, inicia nova eleição
+                    if (this.leader && this.leader.id === data.id && data.battery < 30) {
+                        setTimeout(() => this.startElection(), 500);
+                    }
+                }
+            }
+
+            startHeartbeat() {
+                // Envia heartbeat a cada 3 segundos
+                this.heartbeatInterval = setInterval(() => {
+                    if (this.isConnected) {
+                        const nodeInfo = {
+                            id: this.nodeId,
+                            name: this.name,
+                            battery: this.battery
+                        };
+                        this.broadcast('HEARTBEAT', nodeInfo);
+                    }
+                }, 3000);
+
+                // Verifica nós offline a cada 10 segundos
+                setInterval(() => {
+                    this.checkOfflineNodes();
+                }, 10000);
+            }
+
+            checkOfflineNodes() {
+                const now = Date.now();
+                const offlineThreshold = 15000; // 15 segundos
+
+                for (const [nodeId, nodeInfo] of this.activeNodes) {
+                    if (nodeId !== this.nodeId && 
+                        nodeInfo.lastHeartbeat && 
+                        (now - nodeInfo.lastHeartbeat) > offlineThreshold) {
+                        
+                        this.log(`Nó ${nodeInfo.name} não responde, removendo do anel`);
+                        this.activeNodes.delete(nodeId);
+                        
+                        // Se o líder ficou offline, inicia nova eleição
+                        if (this.leader && this.leader.id === nodeId) {
+                            this.leader = null;
+                            setTimeout(() => this.startElection(), 500);
+                        }
+                        
+                        this.updateUI();
+                    }
+                }
+            }
+
+            async startElection() {
+                if (this.electionInProgress) return;
+                
+                this.electionInProgress = true;
+                this.log(`${this.name} iniciando eleição`);
+                
+                // Anuncia início da eleição
+                this.broadcast('ELECTION_START', {
+                    initiator: this.name,
+                    initiatorId: this.nodeId
+                });
+                
+                // Aguarda um pouco para todos os nós participarem
+                setTimeout(() => {
+                    this.completeElection();
+                }, 2000);
+            }
+
+            participateInElection() {
+                this.electionInProgress = true;
+            }
+
+            completeElection() {
+                const candidates = Array.from(this.activeNodes.values());
+                this.log(`Candidatos: ${candidates.map(c => `${c.name}(${c.battery}%)`).join(', ')}`);
+
+                // Encontra o nó com maior bateria
+                const leader = candidates.reduce((max, node) => 
+                    node.battery > max.battery ? node : max
+                );
+
+                this.leader = leader;
+                this.electionInProgress = false;
+                
+                // Anuncia resultado da eleição
+                this.broadcast('ELECTION_RESULT', leader);
+                
+                this.log(`Líder eleito: ${leader.name} (bateria: ${leader.battery}%)`);
+                this.updateUI();
+            }
+
+            async decreaseBattery() {
+                if (this.battery > 10) {
+                    this.battery -= 10;
+                    this.log(`Bateria diminuída para ${this.battery}%`);
+                    
+                    // Atualiza na lista local
+                    const myNode = this.activeNodes.get(this.nodeId);
+                    if (myNode) {
+                        myNode.battery = this.battery;
+                        this.activeNodes.set(this.nodeId, myNode);
+                    }
+                    
+                    // Anuncia mudança de bateria
+                    this.broadcast('BATTERY_UPDATE', {
+                        id: this.nodeId,
+                        battery: this.battery
+                    });
+                    
+                    this.updateUI();
+                    
+                    // Se a bateria ficou muito baixa, inicia nova eleição
+                    if (this.battery < 30) {
+                        setTimeout(() => this.startElection(), 1000);
+                    }
+                }
+            }
+
+            disconnect() {
+                this.isConnected = false;
+                
+                // Anuncia saída do anel
+                this.broadcast('NODE_LEAVE', {
+                    id: this.nodeId,
+                    name: this.name
+                });
+                
+                // Para heartbeat
+                if (this.heartbeatInterval) {
+                    clearInterval(this.heartbeatInterval);
+                }
+                
+                // Limpa dados
+                this.activeNodes.clear();
+                this.leader = null;
+                
+                this.log(`${this.name} desconectado do anel`);
+                this.updateUI();
+            }
+
+            updateUI() {
+                // Atualiza informações do próprio nó
+                document.getElementById('myNodeName').textContent = this.name;
+                document.getElementById('myNodeAddress').textContent = `localhost:${this.nodeId.substring(0, 8)}...`;
+                
+                // Atualiza status de conexão
+                const connectionStatus = document.getElementById('connectionStatus');
+                const connectionText = document.getElementById('connectionText');
+                if (this.isConnected) {
+                    connectionStatus.className = 'connection-status connected';
+                    connectionText.textContent = 'Conectado';
+                } else {
+                    connectionStatus.className = 'connection-status disconnected';
+                    connectionText.textContent = 'Desconectado';
+                }
+
+                // Atualiza bateria
+                const batteryFill = document.getElementById('batteryFill');
+                const batteryText = document.getElementById('batteryText');
+                batteryFill.style.width = `${this.battery}%`;
+                batteryText.textContent = `${this.battery}%`;
+
+                // Atualiza cor da bateria baseada no nível
+                if (this.battery > 60) {
+                    batteryFill.style.background = '#28a745';
+                } else if (this.battery > 30) {
+                    batteryFill.style.background = '#ffc107';
+                } else {
+                    batteryFill.style.background = '#dc3545';
+                }
+
+                // Atualiza informações do líder
+                if (this.leader) {
+                    document.getElementById('leaderName').textContent = this.leader.name;
+                    document.getElementById('leaderBattery').textContent = `${this.leader.battery}%`;
+                    document.getElementById('leaderAddress').textContent = `ID: ${this.leader.id.substring(0, 8)}...`;
+                } else {
+                    document.getElementById('leaderName').textContent = 'Nenhum';
+                    document.getElementById('leaderBattery').textContent = '-';
+                    document.getElementById('leaderAddress').textContent = '-';
+                }
+
+                // Atualiza lista de nós
+                this.updateNodeList();
+            }
+
+            updateNodeList() {
+                const nodeList = document.getElementById('nodeList');
+                nodeList.innerHTML = '';
+
+                const nodes = Array.from(this.activeNodes.values());
+                
+                if (nodes.length === 0) {
+                    const noNodes = document.createElement('div');
+                    noNodes.className = 'node-item';
+                    noNodes.textContent = 'Nenhum nó conectado';
+                    nodeList.appendChild(noNodes);
+                    return;
+                }
+
+                // Ordena nós por nome para exibição consistente
+                nodes.sort((a, b) => a.name.localeCompare(b.name));
+
+                nodes.forEach(node => {
+                    const nodeItem = document.createElement('div');
+                    nodeItem.className = 'node-item';
+                    
+                    if (this.leader && node.id === this.leader.id) {
+                        nodeItem.classList.add('leader');
+                    }
+                    
+                    if (node.id === this.nodeId) {
+                        nodeItem.classList.add('self');
+                    }
+
+                    const isOnline = node.id === this.nodeId || 
+                                   (node.lastHeartbeat && (Date.now() - node.lastHeartbeat) < 15000);
+
+                    nodeItem.innerHTML = `
+                        <strong>${node.name}</strong> 
+                        <span style="color: ${isOnline ? '#28a745' : '#dc3545'}">
+                            ${isOnline ? '🟢' : '🔴'}
+                        </span><br>
+                        <small>ID: ${node.id.substring(0, 8)}...</small><br>
+                        <small>Bateria: ${node.battery}%</small>
+                        ${this.leader && node.id === this.leader.id ? '<br><small>👑 LÍDER</small>' : ''}
+                        ${node.id === this.nodeId ? '<br><small>📍 VOCÊ</small>' : ''}
+                    `;
+                    
+                    nodeList.appendChild(nodeItem);
+                });
+            }
+
+            destroy() {
+                if (this.channel) {
+                    this.channel.close();
+                }
+                if (this.heartbeatInterval) {
+                    clearInterval(this.heartbeatInterval);
+                }
+            }
+        }
+
+        // Instância global do nó
+        let node = new RingElectionNode();
+
+        async function connectToRing() {
+            const nodeName = document.getElementById('nodeName').value.trim();
+            const existingNodeAddress = document.getElementById('existingNodeAddress').value.trim();
+
+            if (!nodeName) {
+                alert('Por favor, digite um nome para o nó');
+                return;
+            }
+
+            node.name = nodeName;
+            
+            const connected = await node.connectToRing(existingNodeAddress || null);
+            if (connected) {
+                // Esconde formulário e mostra dashboard
+                document.getElementById('connectionForm').classList.add('hidden');
+                document.getElementById('dashboard').style.display = 'grid';
+                
+                node.log(`Bem-vindo ao anel, ${nodeName}!`);
+            } else {
+                alert('Erro ao conectar ao anel');
+            }
+        }
+
+        async function triggerElection() {
+            if (node.isConnected) {
+                await node.startElection();
+            }
+        }
+
+        async function decreaseBattery() {
+            if (node.isConnected) {
+                await node.decreaseBattery();
+            }
+        }
+
+        function disconnect() {
+            node.disconnect();
+            
+            // Volta para o formulário de conexão
+            document.getElementById('connectionForm').classList.remove('hidden');
+            document.getElementById('dashboard').style.display = 'none';
+        }
+
+        // Cleanup quando a página é fechada
+        window.addEventListener('beforeunload', () => {
+            if (node.isConnected) {
+                node.disconnect();
+            }
+            node.destroy();
+        });
+
+        // Permite pressionar Enter no formulário
+        document.getElementById('nodeName').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                connectToRing();
+            }
+        });
+
+        document.getElementById('existingNodeAddress').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                connectToRing();
+            }
+        });
+    </script>
+</body>
+</html>
